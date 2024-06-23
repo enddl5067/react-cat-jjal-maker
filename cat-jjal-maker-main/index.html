@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>고양이 가라사대</title>
+  </head>
+  <style>
+    body {
+      text-align: center;
+    }
+    .main-card button {
+      position: relative;
+      left: -45px;
+      bottom: 15px;
+    }
+    .favorites {
+      list-style: none;
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 15px;
+    }
+    .favorites img {
+      width: 150px;
+    }
+  </style>
+  <body>
+    <div id="app"></div>
+
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+
+    <script type="text/babel">
+      const jsonLocalStorage = {
+        setItem: (key, value) => {
+          localStorage.setItem(key, JSON.stringify(value));
+        },
+        getItem: (key) => {
+          return JSON.parse(localStorage.getItem(key));
+        },
+      };
+
+      // * component 만드는 법 *
+      //   -component는 무조건 대문자로 시작
+      
+      // (arrow-function으로 만든 컴포넌트)
+      const Title = (props) => {
+        // console.log(props);
+        return <h1>{props.children}</h1> /* children이라는 key 값으로 받아옴 */
+      }
+
+      const Form = ({ updateMainCat }) => {
+        const includesHangul = (text) => /[ㄱ-ㅎ|ㅏ-ㅣ|가-힣]/i.test(text);//한글이 포함되어있는지 검사하는 함수
+        //input 값 제어 onChange
+        const [value, setValue] = React.useState('');
+        const [errorMessage, setErrorMessage] = React.useState('');
+
+        function handleInputChange(e) {
+          const userValue = e.target.value;
+          // console.log(includesHangul(userValue))
+          if ( includesHangul(userValue) ) {
+            setErrorMessage('한글은 입력할 수 없습니다.');
+          } else {
+            setErrorMessage(''); //한글이 아닐땐 에러메시지 초기화
+          }
+          setValue(userValue.toUpperCase()); //input value를 대문자로 바꿈
+        }
+
+        function handleFormSubmit(e) {
+          e.preventDefault();
+          setErrorMessage('') //처음에 초기화
+
+          if(value === '') {
+            setErrorMessage('빈 값으로 만들 수 없습니다.');
+            return;
+          }
+
+          updateMainCat();
+        }
+
+        return (
+          <form onSubmit={handleFormSubmit}>
+            <input type="text" name="name" placeholder="영어 대사를 입력해주세요" value={value} onChange={handleInputChange} />
+            <button type="submit">생성</button>
+            <p style={{ color: "red"}}>{errorMessage}</p>
+          </form>
+        );
+      }
+
+      // (일반함수로 만든 컴포넌트)
+      // * inline으로 style 하는 법 *
+      //   -object를 만듬
+      //   -value값은 string으로 넣기("")
+      //   ex) style={{width: "150px", border: "1px solid red" }}
+      function CatItem(props) {
+        return (
+          <li>
+            <img 
+              src={props.img} 
+              style={{width: "150px", border: "1px solid red" }}
+            /> 
+          </li>
+        );
+      }
+
+      function Favorites({favorites}) {
+        return (
+          <ul className="favorites">
+            {favorites.map( cat => <CatItem img={cat} key={cat} />)}
+          </ul>
+        )
+      }
+
+      const MainCard = ( {img, onHeartClick} ) => { //es6 디스트럭퍼링 문법 적용하면 이렇게 할수도 있음 props.img --> {img}
+      
+        return (
+          <div className="main-card">
+            <img
+              src={img}
+              alt="고양이"
+              width="400"
+            />
+            <button onClick={onHeartClick}>🤍</button>
+          </div>
+        );
+      }
+
+      const App = () => {
+        const CAT1 = "https://cataas.com/cat/HSENVDU4ZMqy7KQ0/says/react";
+        const CAT2 = "https://cataas.com/cat/BxqL2EjFmtxDkAm2/says/inflearn";
+        const CAT3 = "https://cataas.com/cat/18MD6byVC1yKGpXp/says/JavaScript";
+
+        //useState
+        // const counterState = React.useState(1);
+        // const counter = counterState[0]; 
+        // const setCounter = counterState[1];
+        // 위에 주석방식을 줄여서 이렇게 씀 
+        // const [counter, setCounter] = React.useState(1);
+        // console.log("카운터", counter);
+        const [counter, setCounter] = React.useState(jsonLocalStorage.getItem('counter'));
+        const [mainCat, setMainCat] = React.useState(CAT1);
+        const [favorites, setFavorites] = React.useState(
+          jsonLocalStorage.getItem('nextFavorites') || []
+        );
+
+        function updateMainCat() {
+          // 메인카드 이미지 변경 함수
+          setMainCat(CAT2);
+          const nextCounter = counter + 1;
+          // counter refresh 함수
+          setCounter(nextCounter);
+          jsonLocalStorage.setItem('counter', nextCounter); //데이터를 로컬 스테이지 데이터베이스에 저장
+        }
+
+        //하트를 눌렀을 때 리스트에 고양이 한 마리 추가
+        function handleHeartClick() {
+          // console.log('하트 눌렀음'); 
+          const nextFavorites = [...favorites, mainCat];  //기존에 있는 배열에 CAT3 배열 추가
+          setFavorites(nextFavorites); 
+          jsonLocalStorage.setItem('favorites', nextFavorites);
+        }
+      
+
+        return (
+          /* Title컴포넌트는 요렇게 props를 children형태로 받을수도 있음 */
+
+          /* 자식컴포넌트에서 쓰던 상태를 상위 컴포넌트에서 같이 쓰고 싶을 때
+          상태를 위로 끌여옮김, 자식 컴포넌트에 상태를 props로 넘겨줌(ex: Form component에 handleFormSubmit 함수를 props로 넘겨줌*/
+
+          // props로 넘길때는 on~ 이라고 네이밍을 함 주로(ex: onHeartClick)
+          <div> 
+            <Title>{counter}번째 고양이 가라사대</Title> 
+            <Form updateMainCat={updateMainCat}/> 
+            <MainCard img={mainCat} onHeartClick={handleHeartClick} />
+            <Favorites favorites={favorites} />
+          </div>
+        )
+      }  
+
+      const here = document.querySelector('#app');
+
+      ReactDOM.render(<App />, here);
+    </script>
+  </body>
+</html>
